@@ -1,23 +1,14 @@
-import React, { useState, useEffect } from "react";
+import React, { useState } from "react";
 import { Input } from "./ui/input";
 import { Popover, PopoverTrigger, PopoverContent } from "./ui/popover";
 import { Button } from "./ui/button";
 import { Calendar } from "./ui/calendar";
-import { Checkbox } from "./ui/checkbox";
 
 import Card from "./Card";
 import { useFirebase } from "@/providers/Firebase";
 
-interface Task {
-  id: string;
-  title: string;
-  dueDate: string;
-  completed: boolean;
-  priority: number;
-}
-
 const Home: React.FC = () => {
-  const { createTask, updateTask, deleteTask, tasks, user } = useFirebase();
+  const { createTask, updateTask, deleteTask, tasks } = useFirebase();
   const [newTaskTitle, setNewTaskTitle] = useState<string>("");
   const [newTaskDueDate, setNewTaskDueDate] = useState<string>("2023-06-30");
   const [selectedDate, setSelectedDate] = useState<Date | undefined>(
