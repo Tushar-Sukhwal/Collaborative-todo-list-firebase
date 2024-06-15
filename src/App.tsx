@@ -2,7 +2,7 @@ import { Route, Routes } from "react-router-dom";
 import Login from "./components/Login";
 
 import { useFirebase } from "./providers/Firebase";
-import Logout from "./components/Logout";
+
 import { Toaster } from "react-hot-toast";
 import { FidgetSpinner } from "react-loader-spinner";
 import Home from "./components/Home";
@@ -25,9 +25,8 @@ function App() {
         {firebase?.user == null ? (
           <Route path="/" element={<Login />} />
         ) : (
-          <Route path="/" element={<Logout />} />
+          <Route path="/" element={<Home />} />
         )}
-        <Route path="home" element={<Home />} />
       </Routes>
     </div>
   );

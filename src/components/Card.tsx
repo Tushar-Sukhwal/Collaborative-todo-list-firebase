@@ -28,13 +28,13 @@ const Card: React.FC<CardProps> = ({
       </div>
       <div className="flex space-x-2">
         <button
-          className="rounded bg-blue-500 px-3 py-1 text-white hover:bg-blue-700"
+          className="rounded bg-blue-500 px-3 py-1 text-white shadow-md hover:bg-blue-700"
           onClick={onClick}
         >
           Toggle Status
         </button>
         <button
-          className="rounded bg-red-500 px-3 py-1 text-white hover:bg-red-700"
+          className="rounded bg-red-500 px-3 py-1 text-white shadow-md hover:bg-red-700"
           onClick={onDelete}
         >
           Delete Task

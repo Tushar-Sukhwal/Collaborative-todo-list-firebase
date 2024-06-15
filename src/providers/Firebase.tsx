@@ -6,6 +6,7 @@ import {
   signInWithPopup,
   GoogleAuthProvider,
   User,
+  signInWithEmailAndPassword,
 } from "firebase/auth";
 import {
   getFirestore,
@@ -57,6 +58,10 @@ interface FirebaseContextProps {
   loading: boolean;
   tasks: any[];
   fetchTasks: () => Promise<void>;
+  signInUserWithEmailAndPassword: (
+    email: string,
+    password: string,
+  ) => Promise<void>;
 }
 
 const FirebaseContext = createContext<FirebaseContextProps | null>(null);
@@ -81,8 +86,8 @@ export const FirebaseProvider = (props: FirebaseProviderProps) => {
   useEffect(() => {
     const unsubscribe = onAuthStateChanged(firebaseAuth, (user) => {
       if (user) {
-        setUser(user);
         fetchTasks();
+        setUser(user);
       } else {
         setUser(null);
         setTasks([]);
@@ -100,7 +105,39 @@ export const FirebaseProvider = (props: FirebaseProviderProps) => {
       toast.success("Signed in with Google");
     } catch (error) {
       console.error("Error signing in with Google", error);
-      toast.error("Error signing in with Google");
+      toast.error("An error occurred during Google sign-in. Please try again.");
+    }
+  };
+
+  const signInUserWithEmailAndPassword = async (
+    email: string,
+    password: string,
+  ) => {
+    try {
+      const res = await signInWithEmailAndPassword(
+        firebaseAuth,
+        email,
+        password,
+      );
+      setUser(res.user);
+      toast.success("Successfully signed in");
+    } catch (error: any) {
+      switch (error.code) {
+        case "auth/invalid-email":
+          toast.error("The email address is not valid.");
+          break;
+        case "auth/user-disabled":
+          toast.error("The user account has been disabled.");
+          break;
+        case "auth/user-not-found":
+          toast.error("User not found.");
+          break;
+        case "auth/wrong-password":
+          toast.error("Wrong password.");
+          break;
+        default:
+          toast.error(error?.code);
+      }
     }
   };
 
@@ -116,9 +153,29 @@ export const FirebaseProvider = (props: FirebaseProviderProps) => {
       );
       setUser(res.user);
       toast.success("Successfully signed up");
-    } catch (error) {
-      console.error("Error signing up with email and password", error);
-      toast.error("Error signing up with email and password");
+    } catch (error: any) {
+      switch (error.code) {
+        case "auth/email-already-in-use":
+          toast.error("The email address is already in use");
+          break;
+        case "auth/invalid-email":
+          toast.error("The email address is not valid.");
+          break;
+        case "auth/operation-not-allowed":
+          toast.error("Operation not allowed.");
+          break;
+        case "auth/weak-password":
+          toast.error("The password is too weak.");
+          break;
+        case "auth/user-not-found":
+          toast.error("User not found.");
+          break;
+        case "auth/wrong-password":
+          toast.error("Wrong password.");
+          break;
+        default:
+          toast.error(error?.code);
+      }
     }
   };
 
@@ -138,7 +195,9 @@ export const FirebaseProvider = (props: FirebaseProviderProps) => {
       toast.success("Task created");
     } catch (error) {
       console.error("Error creating task", error);
-      toast.error("Error creating task");
+      toast.error(
+        "An error occurred while creating the task. Please try again.",
+      );
     }
   };
 
@@ -155,7 +214,9 @@ export const FirebaseProvider = (props: FirebaseProviderProps) => {
       toast.success("Task updated");
     } catch (error) {
       console.error("Error updating task", error);
-      toast.error("Error updating task");
+      toast.error(
+        "An error occurred while updating the task. Please try again.",
+      );
     }
   };
 
@@ -172,7 +233,9 @@ export const FirebaseProvider = (props: FirebaseProviderProps) => {
       toast.success("Task deleted");
     } catch (error) {
       console.error("Error deleting task", error);
-      toast.error("Error deleting task");
+      toast.error(
+        "An error occurred while deleting the task. Please try again.",
+      );
     }
   };
 
@@ -181,7 +244,7 @@ export const FirebaseProvider = (props: FirebaseProviderProps) => {
       setTasks([]);
       return;
     }
-
+    console.log("fetching");
     try {
       const userTasksRef = collection(firestore, "tasks");
       const q = query(userTasksRef, where("userId", "==", user.uid));
@@ -193,7 +256,7 @@ export const FirebaseProvider = (props: FirebaseProviderProps) => {
       setTasks(tasksData);
     } catch (error) {
       console.error("Error fetching tasks", error);
-      toast.error("Error fetching tasks");
+      toast.error("An error occurred while fetching tasks. Please try again.");
     }
   };
 
@@ -210,6 +273,7 @@ export const FirebaseProvider = (props: FirebaseProviderProps) => {
         loading,
         tasks,
         fetchTasks,
+        signInUserWithEmailAndPassword,
       }}
     >
       {props.children}
