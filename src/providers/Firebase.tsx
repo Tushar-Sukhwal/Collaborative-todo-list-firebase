@@ -94,110 +94,107 @@ export const FirebaseProvider = (props: FirebaseProviderProps) => {
     return () => unsubscribe();
   }, []);
 
+  const signInWithGoogle = async () => {
+    try {
+      const res = await signInWithPopup(firebaseAuth, googleProvider);
+      setUser(res.user);
+      toast.success("Signed in with Google");
+    } catch (error) {
+      console.error("Error signing in with Google", error);
+      toast.error("Error signing in with Google");
+    }
+  };
+
   const signupUserWithEmailAndPassword = async (
     email: string,
     password: string,
   ) => {
     try {
-      await createUserWithEmailAndPassword(firebaseAuth, email, password);
-      toast.success("Signed up successfully");
-    } catch (error: any) {
-      switch (error.code) {
-        case "auth/email-already-in-use":
-          toast.error("The email address is already in use");
-          break;
-        case "auth/invalid-email":
-          toast.error("The email address is not valid.");
-          break;
-        case "auth/operation-not-allowed":
-          toast.error("Operation not allowed.");
-          break;
-        case "auth/weak-password":
-          toast.error("The password is too weak.");
-          break;
-        case "auth/user-not-found":
-          toast.error("User not found.");
-          break;
-        case "auth/wrong-password":
-          toast.error("Wrong password.");
-          break;
-        default:
-          toast.error(error?.code);
-      }
+      const res = await createUserWithEmailAndPassword(
+        firebaseAuth,
+        email,
+        password,
+      );
+      setUser(res.user);
+      toast.success("Successfully signed up");
+    } catch (error) {
+      console.error("Error signing up with email and password", error);
+      toast.error("Error signing up with email and password");
     }
   };
 
   const createTask = async (task: any) => {
+    if (!user) {
+      toast.error("You must be logged in to create a task");
+      return;
+    }
+
     try {
-      const docRef = await addDoc(collection(firestore, "tasks"), {
+      const userTasksRef = collection(firestore, "tasks");
+      await addDoc(userTasksRef, {
         ...task,
-        userId: user?.uid,
+        userId: user.uid,
       });
-      setTasks((prevTasks) => [...prevTasks, { id: docRef.id, ...task }]);
-      toast.success("Task created successfully");
-    } catch (error: any) {
-      toast.error(error.message);
+      await fetchTasks();
+      toast.success("Task created");
+    } catch (error) {
+      console.error("Error creating task", error);
+      toast.error("Error creating task");
     }
   };
 
   const updateTask = async (taskId: string, updatedTask: any) => {
+    if (!user) {
+      toast.error("You must be logged in to update a task");
+      return;
+    }
+
     try {
-      await updateDoc(doc(firestore, "tasks", taskId), updatedTask);
-      setTasks((prevTasks) =>
-        prevTasks.map((task) =>
-          task.id === taskId ? { ...task, ...updatedTask } : task,
-        ),
-      );
-      toast.success("Task updated successfully");
-    } catch (error: any) {
-      toast.error(error.message);
+      const taskDocRef = doc(firestore, "tasks", taskId);
+      await updateDoc(taskDocRef, updatedTask);
+      await fetchTasks();
+      toast.success("Task updated");
+    } catch (error) {
+      console.error("Error updating task", error);
+      toast.error("Error updating task");
     }
   };
 
   const deleteTask = async (taskId: string) => {
+    if (!user) {
+      toast.error("You must be logged in to delete a task");
+      return;
+    }
+
     try {
-      await deleteDoc(doc(firestore, "tasks", taskId));
-      setTasks((prevTasks) => prevTasks.filter((task) => task.id !== taskId));
-      toast.success("Task deleted successfully");
-    } catch (error: any) {
-      toast.error(error.message);
+      const taskDocRef = doc(firestore, "tasks", taskId);
+      await deleteDoc(taskDocRef);
+      await fetchTasks();
+      toast.success("Task deleted");
+    } catch (error) {
+      console.error("Error deleting task", error);
+      toast.error("Error deleting task");
     }
   };
 
   const fetchTasks = async () => {
-    if (!user) return;
+    if (!user) {
+      setTasks([]);
+      return;
+    }
+
     try {
-      const tasksQuery = query(
-        collection(firestore, "tasks"),
-        where("userId", "==", user.uid),
-      );
-      const querySnapshot = await getDocs(tasksQuery);
+      const userTasksRef = collection(firestore, "tasks");
+      const q = query(userTasksRef, where("userId", "==", user.uid));
+      const querySnapshot = await getDocs(q);
       const tasksData = querySnapshot.docs.map((doc) => ({
         id: doc.id,
         ...doc.data(),
       }));
       setTasks(tasksData);
-    } catch (error: any) {
-      toast.error(error.message);
-    }
-  };
-
-  const signInWithGoogle = async () => {
-    try {
-      await signInWithPopup(firebaseAuth, googleProvider);
-      toast.success("Signed in successfully");
-    } catch (error: any) {
-      toast.error(error.message);
-    }
-  };
-
-  const signOut = async () => {
-    try {
-      await firebaseAuth.signOut();
-      setTasks([]);
-      toast.success("Signed out successfully");
-    } catch (error: any) {
-      toast.error(error.message);
+    } catch (error) {
+      console.error("Error fetching tasks", error);
+      toast.error("Error fetching tasks");
     }
   };
 
@@ -208,12 +205,12 @@ export const FirebaseProvider = (props: FirebaseProviderProps) => {
         createTask,
         updateTask,
         deleteTask,
-        fetchTasks,
         signInWithGoogle,
         user,
-        signOut,
+        signOut: () => firebaseAuth.signOut(),
         loading,
         tasks,
+        fetchTasks,
       }}
     >
       {props.children}

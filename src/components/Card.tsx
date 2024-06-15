@@ -19,13 +19,27 @@ const Card: React.FC<CardProps> = ({
   onDelete,
 }) => {
   return (
-    <div className="card">
-      <h3>{task}</h3>
-      <p>Status: {status}</p>
-      <p>Priority: {priority}</p>
-      <p>Due Date: {dueDate}</p>
-      <button onClick={onClick}>Toggle Status</button>
-      <button onClick={onDelete}>Delete Task</button>
+    <div className="card flex items-center justify-between rounded-lg bg-white p-4 shadow-sm dark:bg-gray-800">
+      <div>
+        <h3 className="font-medium">{task}</h3>
+        <p>Status: {status}</p>
+        <p>Priority: {priority}</p>
+        <p>Due Date: {dueDate}</p>
+      </div>
+      <div className="flex space-x-2">
+        <button
+          className="rounded bg-blue-500 px-3 py-1 text-white hover:bg-blue-700"
+          onClick={onClick}
+        >
+          Toggle Status
+        </button>
+        <button
+          className="rounded bg-red-500 px-3 py-1 text-white hover:bg-red-700"
+          onClick={onDelete}
+        >
+          Delete Task
+        </button>
+      </div>
     </div>
   );
 };

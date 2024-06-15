@@ -1,87 +1,126 @@
-import React, { useEffect, useState } from "react";
+import React, { useState, useEffect } from "react";
+import { Input } from "./ui/input";
+import { Popover, PopoverTrigger, PopoverContent } from "./ui/popover";
+import { Button } from "./ui/button";
+import { Calendar } from "./ui/calendar";
+import { Checkbox } from "./ui/checkbox";
+
 import Card from "./Card";
-import { Progress } from "./ui/progress";
 import { useFirebase } from "@/providers/Firebase";
 
-const Home = () => {
-  const {
-    tasks,
-    createTask,
-    updateTask,
-    deleteTask,
-    user,
-    loading,
-    fetchTasks,
-  } = useFirebase();
-  const [taskText, setTaskText] = useState("");
+interface Task {
+  id: string;
+  title: string;
+  dueDate: string;
+  completed: boolean;
+  priority: number;
+}
 
-  useEffect(() => {
-    if (user) {
-      fetchTasks();
-    }
-  }, [user]);
+const Home: React.FC = () => {
+  const { createTask, updateTask, deleteTask, tasks, user } = useFirebase();
+  const [newTaskTitle, setNewTaskTitle] = useState<string>("");
+  const [newTaskDueDate, setNewTaskDueDate] = useState<string>("2023-06-30");
+  const [selectedDate, setSelectedDate] = useState<Date | undefined>(
+    new Date(),
+  );
+  const [newTaskPriority, setNewTaskPriority] = useState<number>(1);
+
+  const handleTaskCompletion = async (id: string, completed: boolean) => {
+    await updateTask(id, { completed: !completed });
+  };
 
   const handleAddTask = async () => {
-    if (taskText.trim() !== "") {
-      await createTask({
-        task: taskText.trim(),
-        status: "pending",
-        priority: 1, // Default priority, modify as needed
-        dueDate: new Date().toISOString(), // Default due date, modify as needed
-      });
-      setTaskText(""); // Clear input after creating task
+    if (newTaskTitle.trim() !== "") {
+      const task = {
+        title: newTaskTitle,
+        dueDate: newTaskDueDate,
+        completed: false,
+        priority: newTaskPriority,
+      };
+      await createTask(task);
+      setNewTaskTitle("");
+      setNewTaskDueDate("2023-06-30");
+      setNewTaskPriority(1);
     }
   };
 
-  const handleUpdateTask = async (taskId: string, updatedTask: any) => {
-    await updateTask(taskId, updatedTask);
+  const handleDeleteTask = async (id: string) => {
+    await deleteTask(id);
   };
 
-  const pendingTasks = tasks
-    .filter((task) => task.status === "pending")
-    .sort((a, b) => b.priority - a.priority); // Sort in decreasing order of priority
-
-  const completedTasks = tasks
-    .filter((task) => task.status === "completed")
-    .sort((a, b) => b.priority - a.priority); // Sort in decreasing order of priority
-
-  const completedPercent: number = (completedTasks.length / tasks.length) * 100;
-
   return (
-    <div className="h-full w-full p-10 px-48">
-      <h1 className="my-5 text-center text-4xl">TO DO LIST</h1>
-      <div className="mb-5">
-        <Progress value={completedPercent} className="rounded-lg border-2" />
-        <h1>{`completed ${completedPercent.toFixed(2)} %`}</h1>
-      </div>
-      <div className="mb-4">
-        <input
+    <div className="mx-auto max-w-md p-4 sm:p-6">
+      <h1 className="mb-4 text-2xl font-bold">Todo List</h1>
+      <div className="mb-4 flex items-center">
+        <Input
           type="text"
-          placeholder="Enter task"
-          value={taskText}
-          onChange={(e) => setTaskText(e.target.value)}
+          placeholder="Add a new task"
+          value={newTaskTitle}
+          onChange={(e) => setNewTaskTitle(e.target.value)}
+          className="mr-2 flex-1"
         />
-        <button onClick={handleAddTask}>Add Task</button>
+        <Popover>
+          <PopoverTrigger asChild>
+            <Button variant="outline" className="mr-2">
+              <CalendarDaysIcon className="mr-2 h-4 w-4" />
+              {selectedDate?.toLocaleDateString()}
+            </Button>
+          </PopoverTrigger>
+          <PopoverContent className="w-auto p-0" align="start">
+            <Calendar
+              mode="single"
+              selected={selectedDate}
+              onSelect={(date: Date | undefined) => setSelectedDate(date)}
+              className="rounded-md border"
+            />
+          </PopoverContent>
+        </Popover>
+        <Button onClick={handleAddTask}>Add</Button>
       </div>
-      {pendingTasks.map((task) => (
-        <Card
-          key={task.id}
-          {...task}
-          onClick={() => handleUpdateTask(task.id, { status: "completed" })} // Update task status
-          onDelete={() => deleteTask(task.id)}
-        />
-      ))}
-      <h1 className="mb-4 mt-8 text-2xl font-bold">Completed Tasks</h1>
-      {completedTasks.map((task) => (
-        <Card
-          key={task.id}
-          {...task}
-          onClick={() => handleUpdateTask(task.id, { status: "pending" })} // Update task status
-          onDelete={() => deleteTask(task.id)}
-        />
-      ))}
+      <div className="space-y-2">
+        {tasks.map((task) => (
+          <Card
+            key={task.id}
+            id={task.id}
+            task={task.title}
+            status={task.completed ? "Complete" : "Incomplete"}
+            priority={task.priority}
+            dueDate={task.dueDate}
+            onClick={() => handleTaskCompletion(task.id, task.completed)}
+            onDelete={() => handleDeleteTask(task.id)}
+          />
+        ))}
+      </div>
     </div>
   );
 };
 
 export default Home;
+
+function CalendarDaysIcon(props: React.SVGProps<SVGSVGElement>) {
+  return (
+    <svg
+      {...props}
+      xmlns="http://www.w3.org/2000/svg"
+      width="24"
+      height="24"
+      viewBox="0 0 24 24"
+      fill="none"
+      stroke="currentColor"
+      strokeWidth="2"
+      strokeLinecap="round"
+      strokeLinejoin="round"
+    >
+      <path d="M8 2v4" />
+      <path d="M16 2v4" />
+      <rect width="18" height="18" x="3" y="4" rx="2" />
+      <path d="M3 10h18" />
+      <path d="M8 14h.01" />
+      <path d="M12 14h.01" />
+      <path d="M16 14h.01" />
+      <path d="M8 18h.01" />
+      <path d="M12 18h.01" />
+      <path d="M16 18h.01" />
+    </svg>
+  );
+}
